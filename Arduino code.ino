@@ -26,7 +26,7 @@ int channelID = 2225368; // Replace with your ThingSpeak Channel ID
 const char* apiKey = "VUX286JN0ZVGAPGQ";
 const char* server = "api.thingspeak.com";
 
-int outputChannelID = 2225369; // Replace with your output ThingSpeak Channel ID (Public)
+int outputChannelID = 2271034; // Replace with your output ThingSpeak Channel ID (Public)
 
 // Blynk Authentication Token
 char auth[] = BLYNK_AUTH_TOKEN;
