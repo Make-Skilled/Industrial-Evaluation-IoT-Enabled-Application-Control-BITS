@@ -11,9 +11,9 @@ WRITE_API_KEY = "VUX286JN0ZVGAPGQ"  # Add your write API key here
 BASE_URL = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json"
 WRITE_URL = f"https://api.thingspeak.com/update"
 
-OUTPUT_CHANNEL_ID = ""
-OUTPUT_READ_API_KEY = ""
-OUTPUT_WRITE_API_KEY = ""  
+OUTPUT_CHANNEL_ID = "2271034"
+OUTPUT_READ_API_KEY = "QJ8K34Q6S37OZQD0"
+OUTPUT_WRITE_API_KEY = "1K948MMGSN37H3HE"  
 
 @app.route('/')
 def dashboard():
