@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Sensor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --border-color: #e9ecef;
+        }
+
+        .dark-mode {
+            --primary-bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --border-color: #404040;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .sensor-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .sensor-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .sensor-title {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-online {
+            background-color: #2ecc71;
+        }
+
+        .status-offline {
+            background-color: #e74c3c;
+        }
+
+        .last-update {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .card-content {
+            padding: 25px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="btn btn-outline-secondary theme-switch" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-microchip me-2"></i>IoT Sensor Dashboard</h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="status-indicator status-online"></span>
+                    <span>System Online</span>
+                    <div class="last-update">Last Updated: <span id="lastUpdate"></span></div>
+                </div>
+            </div>
+        </div>
+
+        {% if sensor_data %}
+        <div class="row">
+            <!-- DHT Temperature -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-temperature-high sensor-icon text-primary"></i>
+                        <h3 class="sensor-title">DHT Temperature</h3>
+                        <div class="sensor-value text-primary" data-sensor="dht_temp">{{ sensor_data.dht_temp }}°C</div>
+                        <div id="dhtTempChart" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Humidity -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-tint sensor-icon text-info"></i>
+                        <h3 class="sensor-title">Humidity</h3>
+                        <div class="sensor-value text-info" data-sensor="humidity">{{ sensor_data.humidity }}%</div>
+                        <div id="humidityChart" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MLX Temperature -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-thermometer-half sensor-icon text-success"></i>
+                        <h3 class="sensor-title">MLX Temperature</h3>
+                        <div class="sensor-value text-success" data-sensor="mlx_temp">{{ sensor_data.mlx_temp }}°C</div>
+                        <div id="mlxTempChart" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pressure -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-compress-alt sensor-icon text-warning"></i>
+                        <h3 class="sensor-title">Pressure</h3>
+                        <div class="sensor-value text-warning" data-sensor="pressure">{{ sensor_data.pressure }} hPa</div>
+                        <div id="pressureChart" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BMP Temperature -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-temperature-low sensor-icon text-danger"></i>
+                        <h3 class="sensor-title">BMP Temperature</h3>
+                        <div class="sensor-value text-danger" data-sensor="bmp_temp">{{ sensor_data.bmp_temp }}°C</div>
+                        <div id="bmpTempChart" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Air Quality -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-wind sensor-icon text-secondary"></i>
+                        <h3 class="sensor-title">Air Quality (MQ135)</h3>
+                        <div class="sensor-value text-secondary" data-sensor="mq135_value">{{ sensor_data.mq135_value }} PPM</div>
+                        <div id="airQualityChart" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fan Status -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-fan sensor-icon {% if sensor_data.fan_status == '1' %}text-success{% else %}text-danger{% endif %}"></i>
+                        <h3 class="sensor-title">Fan Status</h3>
+                        <div class="sensor-value {% if sensor_data.fan_status == '1' %}text-success{% else %}text-danger{% endif %}">
+                            {{ 'ON' if sensor_data.fan_status == '1' else 'OFF' }}
+                        </div>
+                        <div class="mt-3">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar {% if sensor_data.fan_status == '1' %}bg-success{% else %}bg-danger{% endif %}"
+                                     role="progressbar"
+                                     style="width: {{ '100%' if sensor_data.fan_status == '1' else '0%' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Button -->
+            <div class="col-md-4">
+                <div class="sensor-card">
+                    <div class="card-content">
+                        <i class="fas fa-power-off sensor-icon" id="controlIcon"></i>
+                        <h3 class="sensor-title">Control Switch</h3>
+                        <div class="mt-3">
+                            <button id="controlButton" class="btn btn-lg btn-outline-primary" onclick="toggleControl()">
+                                Turn ON
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" id="controlProgress"
+                                     role="progressbar"
+                                     style="width: 0%">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Data Chart -->
+        <div class="chart-container">
+            <h3 class="mb-4">Sensor Data History</h3>
+            <div style="height: 400px;">
+                <canvas id="historicalChart"></canvas>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>No sensor data available
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Theme toggling
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const themeIcon = document.querySelector('.theme-switch i');
+            themeIcon.classList.toggle('fa-moon');
+            themeIcon.classList.toggle('fa-sun');
+        }
+
+        // Update timestamp and sensor data without full page refresh
+        function updateDashboard() {
+            fetch(`${BASE_URL}?api_key=${READ_API_KEY}&results=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.feeds && data.feeds.length > 0) {
+                        const feed = data.feeds[0];
+                        
+                        // Update sensor values
+                        document.querySelector('[data-sensor="dht_temp"]').textContent = `${feed.field1}°C`;
+                        document.querySelector('[data-sensor="humidity"]').textContent = `${feed.field2}%`;
+                        document.querySelector('[data-sensor="mlx_temp"]').textContent = `${feed.field3}°C`;
+                        document.querySelector('[data-sensor="pressure"]').textContent = `${feed.field4} hPa`;
+                        document.querySelector('[data-sensor="bmp_temp"]').textContent = `${feed.field5}°C`;
+                        document.querySelector('[data-sensor="mq135_value"]').textContent = `${feed.field6} PPM`;
+                        
+                        // Update control state only if it has changed
+                        const newState = feed.field8 === '1';
+                        if (controlState !== newState) {
+                            updateControlUI(newState);
+                        }
+                        
+                        // Update timestamp
+                        updateTimestamp();
+                    }
+                })
+                .catch(error => console.error('Error updating dashboard:', error));
+        }
+
+        // Function to update control UI elements
+        function updateControlUI(state) {
+            const button = document.getElementById('controlButton');
+            const icon = document.getElementById('controlIcon');
+            const progress = document.getElementById('controlProgress');
+            
+            controlState = state;
+            
+            button.textContent = state ? 'Turn OFF' : 'Turn ON';
+            button.classList.toggle('btn-primary', state);
+            button.classList.toggle('btn-outline-primary', !state);
+            
+            icon.classList.toggle('text-success', state);
+            
+            progress.style.width = state ? '100%' : '0%';
+            progress.classList.toggle('bg-success', state);
+        }
+
+        // Update timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateControlState();
+            
+            // Set up periodic updates without page refresh
+            setInterval(updateDashboard, 30000);
+        });
+
+        let controlState = false;
+
+        function toggleControl() {
+            const button = document.getElementById('controlButton');
+            const icon = document.getElementById('controlIcon');
+            const progress = document.getElementById('controlProgress');
+            
+            // Toggle state
+            const newState = !controlState;
+            
+            // Disable button during API call
+            button.disabled = true;
+            
+            console.log("Sending state:", newState);  // Debug log
+            
+            fetch('/toggle_control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ state: newState })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response:", data);  // Debug log
+                
+                if (data.success) {
+                    updateControlUI(data.state);
+                } else {
+                    alert('Failed to update control state');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating control state');
+            })
+            .finally(() => {
+                button.disabled = false;
+            });
+        }
+
+        // Update the control state when page loads
+        function updateControlState() {
+            fetch(`${BASE_URL}?api_key=${READ_API_KEY}&results=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.feeds && data.feeds.length > 0) {
+                        const fieldValue = data.feeds[0].field8;
+                        const state = fieldValue === '1';  // '1' is ON, '2' is OFF
+                        updateControlUI(state);
+                    }
+                })
+                .catch(error => console.error('Error updating control state:', error));
+        }
+
+        // Sample historical data (you can replace this with real data)
+        const historicalData = {
+            labels: ['12:00', '12:05', '12:10', '12:15', '12:20', '12:25', '12:30'],
+            datasets: [{
+                label: 'Temperature (°C)',
+                data: [22, 23, 24, 23.5, 22.8, 23.2, 24.1],
+                borderColor: 'rgba(255, 99, 132, 1)',
+                fill: false
+            }, {
+                label: 'Humidity (%)',
+                data: [45, 46, 47, 46.5, 45.8, 46.2, 47.1],
+                borderColor: 'rgba(54, 162, 235, 1)',
+                fill: false
+            }]
+        };
+
+        // Create historical chart
+        new Chart(document.getElementById('historicalChart'), {
+            type: 'line',
+            data: historicalData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
