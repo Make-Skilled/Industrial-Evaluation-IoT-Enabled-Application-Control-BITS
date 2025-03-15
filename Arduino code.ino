@@ -26,6 +26,8 @@ int channelID = 2225368; // Replace with your ThingSpeak Channel ID
 const char* apiKey = "VUX286JN0ZVGAPGQ";
 const char* server = "api.thingspeak.com";
 
+int outputChannelID = 2225369; // Replace with your output ThingSpeak Channel ID (Public)
+
 // Blynk Authentication Token
 char auth[] = BLYNK_AUTH_TOKEN;
 
@@ -155,13 +157,13 @@ void loop() {
     Blynk.virtualWrite(V5, mq135_value);
 
     int status = 0;  
-    int motor = ThingSpeak.readIntField(channelID, 8); 
+    int motor = ThingSpeak.readIntField(outputChannelID, 1); 
 
-    if (motor == 200) {
-        Serial.println("✅ Field Read Successfully! Turning ON Relay 2.");
+    if (motor == 1) {
+        Serial.println("✅ Field Read 1! Turning ON Relay 2.");
         digitalWrite(RELAY2_PIN, LOW);  // Turn ON relay
     } else {
-        Serial.print("❌ Failed to Read Field! Status Code: ");
+        Serial.print("❌ Received 2 ");
         Serial.println(status);
         digitalWrite(RELAY2_PIN, HIGH);  // Turn OFF relay
     }
