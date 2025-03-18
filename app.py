@@ -1,3 +1,4 @@
+import pickle
 from flask import Flask, render_template, jsonify, request
 import requests
 import json
@@ -14,6 +15,8 @@ WRITE_URL = f"https://api.thingspeak.com/update"
 OUTPUT_CHANNEL_ID = "2271034"
 OUTPUT_READ_API_KEY = "QJ8K34Q6S37OZQD0"
 OUTPUT_WRITE_API_KEY = "1K948MMGSN37H3HE"  
+
+model=pickle.load(open('model.pkl','rb'))
 
 @app.route('/')
 def dashboard():
@@ -84,6 +87,67 @@ def toggle_control():
     except Exception as e:
         print(f"Error in toggle_control: {str(e)}")  # Debug print
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/predict_from_sensors')
+def predict_from_sensors():
+    try:
+        # Get latest sensor data
+        params = {
+            'api_key': READ_API_KEY,
+            'results': 1
+        }
+        response = requests.get(BASE_URL, params=params)
+        data = response.json()
+        
+        if 'feeds' in data and len(data['feeds']) > 0:
+            latest = data['feeds'][0]
+            features = [
+                float(latest['field1']),  # dht_temp
+                float(latest['field2']),  # humidity
+                float(latest['field3']),  # mlx_temp
+                float(latest['field4']),  # pressure
+                float(latest['field5']),  # bmp_temp
+                float(latest['field6'])   # mq135_value
+            ]
+            
+            result = model.predict([features])
+            if result[0] == 0:
+                return jsonify({'status': 'Working', 'success': True})
+            else:
+                return jsonify({'status': 'Failure', 'success': True})
+    
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False})
+
+@app.route('/live_prediction')
+def live_prediction():
+    return render_template('live_prediction.html')
+
+@app.route('/get_sensor_data')
+def get_sensor_data():
+    try:
+        params = {
+            'api_key': READ_API_KEY,
+            'results': 1
+        }
+        response = requests.get(BASE_URL, params=params)
+        data = response.json()
+        
+        if 'feeds' in data and len(data['feeds']) > 0:
+            latest = data['feeds'][0]
+            return jsonify({
+                'dht_temp': latest['field1'],
+                'humidity': latest['field2'],
+                'mlx_temp': latest['field3'],
+                'pressure': latest['field4'],
+                'bmp_temp': latest['field5'],
+                'mq135_value': latest['field6']
+            })
+        else:
+            return jsonify({'error': 'No data available'}), 404
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Machine Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .prediction-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+        .prediction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        .sensor-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .status-badge {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+        }
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .last-update {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="text-center mb-3">
+                    <i class="fas fa-microchip me-2"></i>Live Machine Prediction
+                </h1>
+                <p class="text-center last-update">Last Updated: <span id="lastUpdate">-</span></p>
+            </div>
+        </div>
+
+        <!-- Prediction Status -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="prediction-card p-4 text-center">
+                    <h3>Machine Status</h3>
+                    <div class="mt-3">
+                        <span id="predictionStatus" class="badge status-badge">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sensor Values -->
+        <div class="row">
+            <!-- DHT Temperature -->
+            <div class="col-md-4">
+                <div class="prediction-card p-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-temperature-high text-primary me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1">DHT Temperature</h5>
+                            <div class="sensor-value text-primary" id="dht_temp">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Humidity -->
+            <div class="col-md-4">
+                <div class="prediction-card p-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-tint text-info me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1">Humidity</h5>
+                            <div class="sensor-value text-info" id="humidity">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MLX Temperature -->
+            <div class="col-md-4">
+                <div class="prediction-card p-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-thermometer-half text-success me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1">MLX Temperature</h5>
+                            <div class="sensor-value text-success" id="mlx_temp">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pressure -->
+            <div class="col-md-4">
+                <div class="prediction-card p-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-compress-alt text-warning me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1">Pressure</h5>
+                            <div class="sensor-value text-warning" id="pressure">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BMP Temperature -->
+            <div class="col-md-4">
+                <div class="prediction-card p-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-temperature-low text-danger me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1">BMP Temperature</h5>
+                            <div class="sensor-value text-danger" id="bmp_temp">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Air Quality -->
+            <div class="col-md-4">
+                <div class="prediction-card p-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-wind text-secondary me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1">Air Quality</h5>
+                            <div class="sensor-value text-secondary" id="mq135_value">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <button class="btn btn-primary btn-lg refresh-btn" onclick="updatePrediction()">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+
+    <script>
+        function updatePrediction() {
+            // Update prediction status
+            fetch('/predict_from_sensors')
+                .then(response => response.json())
+                .then(data => {
+                    const statusBadge = document.getElementById('predictionStatus');
+                    if (data.success) {
+                        statusBadge.textContent = data.status;
+                        statusBadge.className = 'badge status-badge ' + 
+                            (data.status === 'Working' ? 'bg-success' : 'bg-danger');
+                    } else {
+                        statusBadge.textContent = 'Error';
+                        statusBadge.className = 'badge status-badge bg-warning';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const statusBadge = document.getElementById('predictionStatus');
+                    statusBadge.textContent = 'Error';
+                    statusBadge.className = 'badge status-badge bg-warning';
+                });
+
+            // Update sensor values
+            fetch(`${window.location.origin}/get_sensor_data`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('dht_temp').textContent = `${data.dht_temp}°C`;
+                    document.getElementById('humidity').textContent = `${data.humidity}%`;
+                    document.getElementById('mlx_temp').textContent = `${data.mlx_temp}°C`;
+                    document.getElementById('pressure').textContent = `${data.pressure} hPa`;
+                    document.getElementById('bmp_temp').textContent = `${data.bmp_temp}°C`;
+                    document.getElementById('mq135_value').textContent = `${data.mq135_value} PPM`;
+                    
+                    // Update timestamp
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Update on page load
+        updatePrediction();
+
+        // Update every 30 seconds
+        setInterval(updatePrediction, 30000);
+    </script>
+</body>
+</html>
